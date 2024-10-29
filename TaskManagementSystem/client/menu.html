@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            position: relative; 
+            height: 100vh; 
+        }
+
+        header {
+            background-color: white;
+            color: black;
+            padding: 15px;
+            text-align: center;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: #c7c3c3;
+        }
+
+        nav a {
+            color: black;
+            padding: 14px 20px;
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            background-color: #939292;
+            color: black;
+        }
+
+        .menu-section {
+            padding: 20px;
+        }
+
+        .logout-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #0b0b0b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .logout-button:hover {
+            background-color:  #474748;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Welcome to the Menu Page</h1>
+    <div id="user-info"></div>
+    
+</header>
+
+<nav>
+    <a href="checklist.html">Checklist</a>
+    <a href="traininglinks.html">KT Links</a>
+</nav>
+
+<button class="logout-button" id="logoutButton" >Logout</button>
+
+<script>
+    
+    // Check if user is logged in
+     /*
+    const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
+    if (!user) {
+        alert("You are not logged in. Redirecting to login page...");
+        window.location.href = './index.html'; // Redirect to login page
+    } else {
+        document.getElementById('user-info').innerText = `Logged in as: ${user.username} (${user.role})`;
+    }
+
+    function logout() {
+        sessionStorage.removeItem('loggedInUser');
+        alert("You have logged out.");
+        window.location.href = './index.html'; // Redirect to login page
+    }
+    */
+    
+    async function handleLogout() {
+        console.log('inside handleLogout')
+        try {
+            
+            const response = await fetch('http://localhost:3006/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                alert(result.message); // Show success message
+                window.location.replace('index.html');
+                // window.location.href = './index.html'; // Redirect to login page or homepage
+            } else {
+                alert('Error logging out. Please try again.');
+            }
+        } catch (error) {
+            window.location.replace('index.html');
+            console.error('Error during logout:', error);
+            alert('An error occurred. Please try again later.');
+        }
+    }
+
+    async function checkAuthentication() {
+        try {
+            console.log('inside checkAuthentication()')
+            const response = await fetch('http://localhost:3006/api/check-auth', {
+                method: 'GET',
+                credentials: 'include' // Include credentials (cookies) in the request
+            });
+            console.log('response.ok=' +response.ok)
+            if (!response.ok) {
+                console.log('response=' +response)
+                window.location.replace('index.html');
+                // window.location.href = './index.html'; // Redirect to login page
+            }
+        } catch (error) {
+            console.error('Error checking authentication:', error);
+            window.location.replace('index.html');
+            // window.location.href = './index.html'; // Redirect on error
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById("logoutButton").addEventListener("click", handleLogout);
+    });
+    
+
+    // Call checkAuthentication when the page loads
+    window.onload = () => {
+        checkAuthentication(); // Your function to validate session
+        sessionStorage.clear();
+        
+    };
+
+    if (!sessionStorage.getItem("reloadedMenu")) {
+        // Set a flag in sessionStorage to indicate that the page has been reloaded
+        sessionStorage.setItem("reloadedMenu", "true");
+        // Reload the page
+        location.reload();
+    }
+</script>
+
+<!-- <button class="logout-button" onclick="window.location.href='./index.html';">Logout</button> -->
+
+</body>
+</html>

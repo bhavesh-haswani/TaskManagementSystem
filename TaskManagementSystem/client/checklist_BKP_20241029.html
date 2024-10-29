@@ -1,0 +1,298 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Checklist</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: white;
+        }
+
+        h1 {
+            color: #090909;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #ece8e8;
+            color: black;
+        }
+
+        td:nth-child(1) {
+            width: 50px;
+        }
+
+        td:nth-child(6) {
+            width: 30px;
+        }
+
+        td:nth-child(7) {
+            width: 120px;
+        }
+
+        td button {
+            padding: 10px 15px;
+            background-color: #ece8e8;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        td button:hover {
+            background-color: #c7c4c4;
+        }
+
+        td button:disabled {
+            background-color: #ece8e8;
+            cursor: not-allowed;
+        }
+
+        .delete-button {
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: red;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Task Checklist</h1>
+
+    <table id="taskTable">
+        <thead>
+            <tr>
+                <th>Sr No.</th>
+                <th>Task Name</th>
+                <th>Assigned to</th>
+                <th>Task Status</th>
+                <th>Assigned By</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="taskTableBody">
+        </tbody>
+    </table>
+
+    <button onclick="addRow()">Add Row</button>
+
+    <script>
+        const employee = ["krishna", "bhavesh"];
+        const statuses = ["Pending", "Completed"];
+
+        function addRow() {
+            const table = document.getElementById("taskTable").getElementsByTagName('tbody')[0];
+            const rowCount = table.rows.length + 1;
+            const newRow = table.insertRow();
+
+            const cell1 = newRow.insertCell(0);
+            const cell2 = newRow.insertCell(1);
+            const cell3 = newRow.insertCell(2);
+            const cell4 = newRow.insertCell(3);
+            const cell5 = newRow.insertCell(4); // New column for AssignedBy
+            const cell6 = newRow.insertCell(5);
+
+            cell1.innerHTML = rowCount;
+            cell2.innerHTML = `<input type="text" placeholder="Enter task name">`;
+            
+            let assignedDropdown = `<select>`;
+            employee.forEach(employee => {
+                assignedDropdown += `<option value="${employee}">${employee}</option>`;
+            });
+            assignedDropdown += `</select>`;
+            cell3.innerHTML = assignedDropdown;
+
+            let statusDropdown = `<select>`;
+            statuses.forEach(status => {
+                statusDropdown += `<option value="${status}">${status}</option>`;
+            });
+            statusDropdown += `</select>`;
+            cell4.innerHTML = statusDropdown;
+
+            cell5.innerHTML = `<input type="text" placeholder="Assigned by">`; // New input for AssignedBy
+
+            cell6.innerHTML = `
+                <button onclick="saveThisTask(this)">Save</button>
+                <button onclick="editTask(this)" disabled>Edit</button>
+                <button class="delete-button" onclick="deleteRow(this)">🗑️</button>
+            `;
+        }
+
+        function deleteRow(button) {
+            const row = button.parentNode.parentNode;
+            const taskId = row.dataset.id;
+            
+            const confirmDelete = confirm("Are you sure you want to delete this task?");
+            if (!confirmDelete) return;
+
+            fetch(`http://localhost:3006/api/tasks/${taskId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.text())
+            .then(result => {
+                console.log("Task deleted successfully");
+                row.remove();
+            })
+            .catch(error => {
+                console.error("Failed to delete task", error);
+            });
+        }
+
+        /*function saveTask(button) {
+            console.log('saveTask');
+            const row = button.parentNode.parentNode;
+            const taskName = row.cells[1].querySelector("input").value;
+            const assignedTo = row.cells[2].querySelector("select").value;
+            const taskStatus = row.cells[3].querySelector("select").value;
+            const assignedBy = row.cells[4].querySelector("input").value;
+            
+
+            fetch('http://localhost:3006/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskName, assignedTo, taskStatus, assignedBy })
+            })
+            .then(response => response.json())
+            .then(task => {
+                button.disabled = true;
+                row.dataset.id = task.Id;
+                row.cells[5].querySelector("button:nth-child(2)").disabled = false; 
+                console.log("Task saved successfully");
+            })
+            .catch(error => {
+                console.error("Failed to save task", error);
+            });
+        }*/
+        function saveThisTask(button) {
+            // console.log('saveThisTask')
+            const row = button.parentNode.parentNode;
+            const taskName = row.cells[1].querySelector("input").value;
+            const assignedTo = row.cells[2].querySelector("select").value;
+            const taskStatus = row.cells[3].querySelector("select").value;
+            const assignedBy = row.cells[4].querySelector("input").value;
+
+            // Check if the task already has an ID to determine whether to update or create a new task
+            const taskId = row.dataset.id;
+
+            if (taskId) {
+                // Update existing task
+                fetch(`http://localhost:3006/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ taskName, assignedTo, taskStatus, assignedBy })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        button.disabled = true;
+                        row.cells[5].querySelector("button:nth-child(2)").disabled = false; 
+                        console.log("Task updated successfully");
+                    } else {
+                        console.error("Failed to update task");
+                    }
+                });
+            } else {
+                // Create new task
+                fetch('http://localhost:3006/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ taskName, assignedTo, taskStatus, assignedBy })
+                })
+                .then(response => response.json())
+                .then(task => {
+                    row.dataset.id = task.Id; // Assign the ID of the newly created task
+                    button.disabled = true;
+                    row.cells[5].querySelector("button:nth-child(2)").disabled = false; 
+                    console.log("Task saved successfully");
+                })
+                .catch(error => {
+                    console.error("Failed to save task", error);
+                });
+            }
+        }
+
+   
+
+        function editTask(button) {
+            const row = button.parentNode.parentNode;
+            console.log(row)
+            row.cells[1].querySelector("input").disabled = false;
+            row.cells[2].querySelector("select").disabled = false;
+            row.cells[3].querySelector("select").disabled = false;
+            row.cells[5].querySelector("button:nth-child(1)").disabled = false;  
+            button.disabled = true;
+            console.log('edit exited')
+        }
+
+
+        function fetchTasks() {
+            fetch('http://localhost:3006/api/tasks')
+                .then(response => response.json())
+                .then(tasks => {
+                    const tableBody = document.getElementById('taskTableBody');
+                    tableBody.innerHTML = '';
+                    tasks.forEach((task, index) => {
+                        const row = tableBody.insertRow();
+                        row.dataset.id = task.Id;
+
+                        const cell1 = row.insertCell(0);
+                        const cell2 = row.insertCell(1);
+                        const cell3 = row.insertCell(2);
+                        const cell4 = row.insertCell(3);
+                        const cell5 = row.insertCell(4); // AssignedBy
+                        const cell6 = row.insertCell(5);
+
+                        cell1.innerHTML = index + 1;
+                        cell2.innerHTML = `<input type="text" value="${task.TaskName}" disabled>`;
+                        
+                        let assignedDropdown = `<select disabled>`;
+                        employee.forEach(emp => {
+                            const selected = task.AssignedTo === emp ? 'selected' : '';
+                            assignedDropdown += `<option value="${emp}" ${selected}>${emp}</option>`;
+                        });
+                        assignedDropdown += `</select>`;
+                        cell3.innerHTML = assignedDropdown;
+
+                        let statusDropdown = `<select disabled>`;
+                        statuses.forEach(status => {
+                            const selected = task.TaskStatus === status ? 'selected' : '';
+                            statusDropdown += `<option value="${status}" ${selected}>${status}</option>`;
+                        });
+                        statusDropdown += `</select>`;
+                        cell4.innerHTML = statusDropdown;
+
+                        cell5.innerHTML = `<input type="text" value="${task.assignedby}" disabled>`; // Display AssignedBy
+
+                        cell6.innerHTML = `
+                            <button onclick="saveThisTask(this)" disabled>Save</button>
+                            <button onclick="editTask(this)">Edit</button>
+                            <button class="delete-button" onclick="deleteRow(this)">🗑️</button>
+                        `;
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching tasks:', error);
+                });
+        }
+
+        fetchTasks(); // Fetch tasks when the page loads
+    </script>
+</body>
+</html>
